@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <title>Quiz App with Wallet Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc); 
+            margin: 0;
+            padding: 0;
+            color: #fff;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2575fc;
+        }
+        .connect-wallet {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .topic-boxes {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+        .topic-box {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            width: 150px;
+            transition: background-color 0.3s;
+        }
+        .topic-box:hover {
+            background-color: #45a049;
+        }
+        .question-container {
+            display: none;
+        }
+        .question {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .options {
+            list-style-type: none;
+            padding: 0;
+        }
+        .options li {
+            background-color: #f1f1f1;
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .options li:hover {
+            background-color: #ddd;
+        }
+        .options li.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .result {
+            text-align: center;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        .timer {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #ff4d4d;
+        }
+        .video-container {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .video-container video {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        .description {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Welcome to the Quiz</h1>
+    <div class="connect-wallet">
+        <button class="btn" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+    <div class="topic-boxes" style="display: none;">
+        <div class="topic-box" onclick="startQuiz('blockchain')">Blockchain</div>
+        <div class="topic-box" onclick="startQuiz('solana')">Solana</div>
+        <div class="topic-box" onclick="startQuiz('quicknode')">QuickNode</div>
+    </div>
+    <div class="video-container" id="video-container">
+        <video id="intro-video" controls></video>
+        <div class="description" id="description"></div>
+        <button class="btn" id="start-quiz-btn" style="display: none;" onclick="startQuizAfterVideo()">Start Quiz</button>
+    </div>
+    <div class="question-container" id="question-container">
+        <div class="timer" id="timer">Time left: <span id="time-left">10</span> seconds</div>
+        <div class="question" id="question"></div>
+        <ul class="options" id="options"></ul>
+        <button class="btn" onclick="nextQuestion()">Next</button>
+    </div>
+    <div class="result" id="result" style="display: none;"></div>
+</div>
+<script>
+    let questions = {
+        blockchain: { 
+            time: 20, 
+            data: [
+                { question: "What is a blockchain?", options: ["A type of database", "A type of cryptocurrency", "A type of network"], answer: "A type of database" },
+                { question: "What is the primary benefit of blockchain?", options: ["Centralization", "Transparency", "Speed"], answer: "Transparency" }
+            ],
+            video: "https://www.youtube.com/embed/SSo_EIwHSd4",
+            description: "Learn the basics of blockchain technology and its benefits."
+        },
+        solana: { 
+            time: 10, 
+            data: [
+                { question: "What consensus mechanism does Solana use?", options: ["Proof of Work", "Proof of Stake", "Proof of History"], answer: "Proof of History" },
+                { question: "What is the native token of Solana?", options: ["SOL", "ETH", "BTC"], answer: "SOL" }
+            ],
+            video: "https://www.youtube.com/embed/4w3-f6Xhvu8",
+            description: "Understand the Solana blockchain and its unique consensus mechanism."
+        },
+        quicknode: { 
+            time: 15, 
+            data: [
+                { question: "What is QuickNode?", options: ["A blockchain explorer", "A blockchain node provider", "A cryptocurrency exchange"], answer: "A blockchain node provider" },
+                { question: "Which blockchain networks does QuickNode support?", options: ["Bitcoin", "Ethereum", "Both"], answer: "Both" }
+            ],
+            video: "https://www.youtube.com/embed/3aGSqasVPsI",
+            description: "Discover QuickNode and its support for various blockchain networks."
+        }
+    };
+    let currentTopic = '';
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timer;
+    let timeLeft;
+    const clickSound = new Audio('click.wav');
+
+    async function connectWallet() {
+        const solflareAdapter = new SolflareWalletAdapter();
+        const phantomAdapter = new PhantomWalletAdapter();
+
+        await solflareAdapter.connect();
+        if (solflareAdapter.connected) {
+            alert(`Solflare connected: ${solflareAdapter.publicKey}`);
+            document.querySelector('.topic-boxes').style.display = 'flex';
+            return;
+        }
+
+        await phantomAdapter.connect();
+        if (phantomAdapter.connected) {
+            alert(`Phantom connected: ${phantomAdapter.publicKey}`);
+            document.querySelector('.topic-boxes').style.display = 'flex';
+            return;
+        }
+
+        await manualInput();
+    }
+
+    function startQuiz(topic) {
+        currentTopic = topic;
+        currentQuestionIndex = 0;
+        score = 0;
+        timeLeft = questions[topic].time;
+        showVideo();
+    }
+
+    function showVideo() {
+        const videoContainer = document.getElementById('video-container');
+        const introVideo = document.getElementById('intro-video');
+        const description = document.getElementById('description');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+
+        introVideo.src = questions[currentTopic].video;
+        description.innerText = questions[currentTopic].description;
+        videoContainer.style.display = 'block';
+        startQuizBtn.style.display = 'block';
+
+        introVideo.onended = () => {
+            startQuizBtn.style.display = 'block';
+        };
+    }
+
+    function startQuizAfterVideo() {
+        document.getElementById('video-container').style.display = 'none';
+        showQuestion();
+        startTimer();
+    }
+
+    function showQuestion() {
+        const questionData = questions[currentTopic].data[currentQuestionIndex];
+        document.getElementById('question').innerText = questionData.question;
+        const optionsList = document.getElementById('options');
+        optionsList.innerHTML = '';
+        questionData.options.forEach(option => {
+            const li = document.createElement('li');
+            li.innerText = option;
+            li.onclick = () => checkAnswer(option, li);
+            optionsList.appendChild(li);
+        });
+        document.getElementById('question-container').style.display = 'block';
+    }
+
+    function checkAnswer(option, liElement) {
+        const correctAnswer = questions[currentTopic].data[currentQuestionIndex].answer;
+        if (option === correctAnswer) score++;
+        document.querySelectorAll('.options li').forEach(li => li.classList.remove('selected'));
+        liElement.classList.add('selected');
+        clickSound.play();
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions[currentTopic].data.length - 1) {
+            currentQuestionIndex++;
+            showQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function startTimer() {
+        timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('time-left').innerText = timeLeft;
+            if (timeLeft <= 0) endQuiz();
+        }, 1000);
+    }
+
+    function endQuiz() {
+        clearInterval(timer);
+        showResult();
+    }
+
+    function showResult() {
+        document.getElementById('result').innerText = `Your score is: ${score}/${questions[currentTopic].data.length}`;
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('question-container').style.display = 'none';
+    }
+
+    // Wallet Adapters
+    // class SolflareWalletAdapter { /*...*/ }
+    // class PhantomWalletAdapter { /*...*/ }
+    // async function manualInput() { /*...*/ }
+
+  // <!-- Custom Solflare Wallet Adapter -->
+
+    class SolflareWalletAdapter {
+        constructor() {
+            this.connected = false;
+            this.publicKey = null;
+        }
+
+        async connect() {
+            try {
+                const provider = window.solflare;
+                if (provider) {
+                    await provider.connect();
+                    this.publicKey = provider.publicKey.toString();
+                    this.connected = true;
+                } else {
+                    await alert("Solflare wallet is not installed.");
+                }
+            } catch (err) {
+                console.error(err);
+                this.connected = false;
+            }
+        }
+
+        disconnect() {
+            if (this.connected) {
+                window.solflare.disconnect();
+                this.connected = false;
+                this.publicKey = null;
+            }
+        }
+    }
+
+    class PhantomWalletAdapter {
+        constructor() {
+            this.connected = false;
+            this.publicKey = null;
+        }
+
+        async connect() {
+            try {
+                const provider = window.solana;
+                if (provider && provider.isPhantom) {
+                    await provider.connect();
+                    this.publicKey = provider.publicKey.toString();
+                    this.connected = true;
+                } else {
+                    await alert("Phantom wallet is not installed.");
+                }
+            } catch (err) {
+                console.error(err);
+                this.connected = false;
+            }
+        }
+
+        disconnect() {
+            if (this.connected) {
+                window.solana.disconnect();
+                this.connected = false;
+                this.publicKey = null;
+            }
+        }
+    }
+
+    async function connectSolflare() {
+        const solflareWallet = new SolflareWalletAdapter();
+        await solflareWallet.connect();
+
+        if (solflareWallet.connected) {
+            await alert(`Connected! Public Key: ${solflareWallet.publicKey} . You have been whitelisted for our Project. Thank you.`);
+            // Optionally handle the connected wallet here
+        } else {
+            await alert("Failed to connect Solflare wallet.");
+        }
+    }
+
+    async function connectPhantom() {
+        const phantomWallet = new PhantomWalletAdapter();
+        await phantomWallet.connect();
+
+        if (phantomWallet.connected) {
+            await alert(`Connected! Public Key: ${phantomWallet.publicKey} . You have been whitelisted for our Project. Thank you.`);
+            // Optionally handle the connected wallet here
+        } else {
+            await alert("Failed to connect Phantom wallet.");
+        }
+    }
+
+    async function manualInput() {
+        const address = await prompt("Enter your Solana address:");
+        if (address) {
+            await alert(`Public Key: ${address}  . You have been whitelisted for our Project. Thank you.`);
+            // Optionally handle the manual input address here
+
+            sendTokenDistribution(address, token_name, score, 'Sending scored for white-listing');
+    
+            var confi = await confirm_("Be safe. - Would you love to play again?");
+            if (confi) {
+                resetGame();
+            }
+        }
+    }
+  
+</script>
+</body>
+</html>

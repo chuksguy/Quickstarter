@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <title>Quiz App with Wallet Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a73e8, #34a853);
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            width: 150px;
+            animation: bounceIn 1.2s ease-in-out;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 0.9; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+        }
+        .connect-wallet {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .topic-boxes {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+        .topic-box {
+            /* background-color: #34a853; */
+            background: linear-gradient(135deg, #1a73e8, #34a853);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            width: 150px;
+            transition: transform 0.3s, background-color 0.3s;
+            position: relative;
+        }
+        .topic-box img {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+        .topic-box:hover {
+            background-color: #2c8f46;
+            transform: translateY(-5px);
+        }
+        .question-container {
+            display: none;
+        }
+        .question {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .options {
+            list-style-type: none;
+            padding: 0;
+        }
+        .options li {
+            background-color: #f1f1f1;
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .options li:hover {
+            background-color: #ddd;
+            transform: translateX(5px);
+        }
+        .options li.selected {
+            background-color: #34a853;
+            color: white;
+        }
+        .btn {
+            background-color: #34a853;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .btn:hover {
+            background-color: #2c8f46;
+            transform: scale(1.05);
+        }
+        .result {
+            text-align: center;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        .timer {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #ff4d4d;
+        }
+        .video-container {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .video-container iframe {
+            width: 100%;
+            height: 360px;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        .description {
+            text-align: justify;
+            font-size: 16px;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="logo">
+        <img src="quickstarter.webp" alt="QuickStarter Logo">
+    </div>
+    <h1>Welcome to the Quiz</h1>
+    <div class="connect-wallet">
+        <button class="btn" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+    <div class="topic-boxes" style="display: none;">
+        <div class="topic-box" onclick="startQuiz('blockchain')">
+            <img src="blockchain.svg" alt="Blockchain">
+            Blockchain
+        </div>
+        <div class="topic-box" onclick="startQuiz('solana')">
+            <img src="solana.svg" alt="Solana">
+            Solana
+        </div>
+        <div class="topic-box" onclick="startQuiz('quicknode')">
+            <img src="quicknode.svg" alt="QuickNode">
+            QuickNode
+        </div>
+    </div>
+    <div class="video-container" id="video-container">
+        <iframe id="intro-video" controls></iframe>
+        <div class="description" id="description"></div>
+        <button class="btn" id="start-quiz-btn" style="display: none;" onclick="startQuizAfterVideo()">Start Quiz</button>
+    </div>
+    <div class="question-container" id="question-container">
+        <div class="timer" id="timer">Time left: <span id="time-left">10</span> seconds</div>
+        <div class="question" id="question"></div>
+        <ul class="options" id="options"></ul>
+        <button class="btn" onclick="nextQuestion()">Next</button>
+    </div>
+    <div class="result" id="result" style="display: none;"></div>
+</div>
+<script>
+    let questions = {
+        blockchain: { 
+            time: 40, 
+            data: [
+    { question: "What is blockchain?", options: ["A centralized database", "A decentralized digital ledger", "A cloud storage system"], answer: "A decentralized digital ledger" },
+    { question: "What is the primary purpose of blockchain?", options: ["To process traditional banking transactions", "To record and secure digital transactions", "To manage centralized data"], answer: "To record and secure digital transactions" },
+    { question: "Which blockchain feature ensures its security?", options: ["Smart contracts", "Consensus mechanisms", "Token rewards"], answer: "Consensus mechanisms" },
+    { question: "What does blockchain's high scalability allow for?", options: ["Low transaction fees", "Large-scale dApps and crypto projects", "Limited usage in applications"], answer: "Large-scale dApps and crypto projects" },
+    { question: "What technology is often used to validate transactions on a blockchain?", options: ["Proof of History", "Proof of Work", "Proof of Stake"], answer: "Proof of Work" }
+],
+            video: "https://www.youtube.com/embed/SSo_EIwHSd4",
+            description: `Blockchain is a decentralized, digital ledger technology that securely records transactions across multiple computers in a way that prevents alterations or tampering. It operates on a peer-to-peer network where participants validate and record transactions in blocks, which are linked together in a chronological chain—hence the name "blockchain."
+
+Each block contains a set of transactions, a timestamp, and a reference to the previous block, creating an immutable record. Blockchain is often associated with cryptocurrencies like Bitcoin and Ethereum, but its applications extend far beyond finance, including supply chain management, healthcare, voting systems, and intellectual property.
+
+                     Key Features of Blockchain
+1.Decentralization: No single entity controls the blockchain. Instead, it's maintained by a network of nodes (computers) that validate transactions.
+2.Security: Transactions are encrypted, ensuring data privacy and protection from fraud or hacking.
+3.Immutability: Once a block is added to the chain, it cannot be altered, ensuring a permanent, verifiable record.
+4.Transparency: All participants have access to the same information, promoting trust and accountability.
+
+Blockchain offers significant potential for improving efficiency, reducing costs, and enhancing transparency in various industries. It is considered one of the foundational technologies of Web 3.0.`,
+        },
+        solana: { 
+            time: 40, 
+            data: [
+                { question: "What is Solana?", options: ["A high-performance blockchain", "A cryptocurrency exchange", "A decentralized storage platform"], answer: "A high-performance blockchain" },
+                { question: "How does Solana achieve high throughput?", options: ["By using Proof of Work", "By combining Proof of History and Proof of Stake", "By using centralized validators"], answer: "By combining Proof of History and Proof of Stake" },
+                { question: "What is the main advantage of Solana's transaction fees?", options: ["High fees for security", "Low fees for fast transactions", "No fees for transactions"], answer: "Low fees for fast transactions" },
+                { question: "Which sector is Solana particularly popular in?", options: ["Decentralized Finance (DeFi)", "Centralized Finance", "Social networking"], answer: "Decentralized Finance (DeFi)" },
+                { question: "What kind of applications can be built on Solana?", options: ["Decentralized applications (dApps)", "Mobile applications", "Centralized applications"], answer: "Decentralized applications (dApps)" }
+            ],
+            // https://www.youtube.com/watch?v=-o14cCClnGU
+            video: "https://www.youtube.com/embed/-o14cCClnGU?si=9GnTrHnIXu-Gxl84",
+            description: `Solana is a high-performance blockchain designed to provide fast, scalable, and low-cost decentralized applications (dApps). Launched in 2020, it uses a unique combination of Proof of History (PoH) and Proof of Stake (PoS) to achieve over 65,000 transactions per second (TPS), making it one of the fastest blockchains in the industry. This speed, paired with minimal transaction fees, has made Solana an attractive platform for decentralized finance (DeFi), NFTs, and a wide range of decentralized applications.
+
+The Solana ecosystem is rapidly growing, with thousands of projects across various sectors, from finance to gaming and Web3. Solana’s focus on scalability and low fees allows developers to build high-performance applications that can handle mass adoption without compromising on decentralization. As the blockchain continues to evolve, it has established itself as a major player in the blockchain space, offering an efficient alternative to older platforms like Ethereum.`
+        },
+        quicknode: { 
+            time: 40, 
+            data: [
+    { question: "What is QuickNode?", options: ["A blockchain explorer", "A blockchain node provider", "A cryptocurrency exchange"], answer: "A blockchain node provider" },
+    { question: "Which blockchain networks does QuickNode support?", options: ["Bitcoin", "Ethereum", "Both"], answer: "Both" },
+    { question: "What does QuickNode provide for developers?", options: ["Blockchain nodes", "Cryptocurrency wallets", "Smart contract creation tools"], answer: "Blockchain nodes" },
+    { question: "What is the primary benefit of using QuickNode?", options: ["Running blockchain nodes locally", "Simplified blockchain access and scaling", "Increased transaction fees"], answer: "Simplified blockchain access and scaling" },
+    { question: "Which type of applications can benefit from QuickNode?", options: ["Decentralized Finance (DeFi)", "E-commerce websites", "Social media platforms"], answer: "Decentralized Finance (DeFi)" }
+],
+            video: "https://www.youtube.com/embed/3aGSqasVPsI",
+            description: `QuickNode is a cloud-based platform that provides infrastructure for developers and businesses building on blockchain networks. By offering easy access to a wide range of blockchain nodes, QuickNode simplifies the process of connecting to blockchains like Ethereum, Bitcoin, Solana, and more. With QuickNode, developers can rapidly deploy full nodes, access blockchain data, and scale their applications without the hassle of managing their own infrastructure.
+
+Designed to be fast, reliable, and developer-friendly, QuickNode supports high-performance applications by providing low-latency access to blockchain data. It helps developers save time and resources, offering APIs, enhanced analytics, and monitoring tools to optimize the development process. Whether for decentralized finance (DeFi) projects, NFT platforms, or any blockchain-based application, QuickNode accelerates innovation by removing the technical barriers of running blockchain infrastructure.`
+        }
+    };
+    let currentTopic = '';
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timer;
+    let timeLeft;
+    const clickSound = new Audio('click.wav');
+
+    async function connectWallet() {
+        const solflareAdapter = new SolflareWalletAdapter();
+        const phantomAdapter = new PhantomWalletAdapter();
+
+        await solflareAdapter.connect();
+        if (solflareAdapter.connected) {
+            alert(`Solflare connected: ${solflareAdapter.publicKey}`);
+            document.querySelector('.topic-boxes').style.display = 'flex';
+            return;
+        }
+
+        await phantomAdapter.connect();
+        if (phantomAdapter.connected) {
+            alert(`Phantom connected: ${phantomAdapter.publicKey}`);
+            document.querySelector('.topic-boxes').style.display = 'flex';
+            return;
+        }
+
+        await manualInput();
+    }
+
+    function startQuiz(topic) {
+        currentTopic = topic;
+        currentQuestionIndex = 0;
+        score = 0;
+        timeLeft = questions[topic].time;
+        showVideo();
+    }
+
+    function showVideo() {
+        const videoContainer = document.getElementById('video-container');
+        const introVideo = document.getElementById('intro-video');
+        const description = document.getElementById('description');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+
+        introVideo.src = questions[currentTopic].video;
+        description.innerText = questions[currentTopic].description;
+        videoContainer.style.display = 'block';
+        startQuizBtn.style.display = 'block';
+
+        introVideo.onended = () => {
+            startQuizBtn.style.display = 'block';
+        };
+    }
+
+    function startQuizAfterVideo() {
+        document.getElementById('video-container').style.display = 'none';
+        showQuestion();
+        startTimer();
+    }
+
+    function showQuestion() {
+        const questionData = questions[currentTopic].data[currentQuestionIndex];
+        document.getElementById('question').innerText = questionData.question;
+        const optionsList = document.getElementById('options');
+        optionsList.innerHTML = '';
+        questionData.options.forEach(option => {
+            const li = document.createElement('li');
+            li.innerText = option;
+            li.onclick = () => checkAnswer(option, li);
+            optionsList.appendChild(li);
+        });
+        document.getElementById('question-container').style.display = 'block';
+    }
+
+    function checkAnswer(option, liElement) {
+        const correctAnswer = questions[currentTopic].data[currentQuestionIndex].answer;
+        if (option === correctAnswer) score++;
+        document.querySelectorAll('.options li').forEach(li => li.classList.remove('selected'));
+        liElement.classList.add('selected');
+        clickSound.play();
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions[currentTopic].data.length - 1) {
+            currentQuestionIndex++;
+            showQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function startTimer() {
+        timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('time-left').innerText = timeLeft;
+            if (timeLeft <= 0) endQuiz();
+        }, 1000);
+    }
+
+    function endQuiz() {
+        clearInterval(timer);
+        showResult();
+    }
+
+    function showResult() {
+        document.getElementById('result').innerText = `Your score is: ${score}/${questions[currentTopic].data.length}`;
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('question-container').style.display = 'none';
+    }
+
+    // Wallet Adapters
+    // class SolflareWalletAdapter { /*...*/ }
+    // class PhantomWalletAdapter { /*...*/ }
+    // async function manualInput() { /*...*/ }
+
+  // <!-- Custom Solflare Wallet Adapter -->
+
+    class SolflareWalletAdapter {
+        constructor() {
+            this.connected = false;
+            this.publicKey = null;
+        }
+
+        async connect() {
+            try {
+                const provider = window.solflare;
+                if (provider) {
+                    await provider.connect();
+                    this.publicKey = provider.publicKey.toString();
+                    this.connected = true;
+                } else {
+                    await alert("Solflare wallet is not installed.");
+                }
+            } catch (err) {
+                console.error(err);
+                this.connected = false;
+            }
+        }
+
+        disconnect() {
+            if (this.connected) {
+                window.solflare.disconnect();
+                this.connected = false;
+                this.publicKey = null;
+            }
+        }
+    }
+
+    class PhantomWalletAdapter {
+        constructor() {
+            this.connected = false;
+            this.publicKey = null;
+        }
+
+        async connect() {
+            try {
+                const provider = window.solana;
+                if (provider && provider.isPhantom) {
+                    await provider.connect();
+                    this.publicKey = provider.publicKey.toString();
+                    this.connected = true;
+                } else {
+                    await alert("Phantom wallet is not installed.");
+                }
+            } catch (err) {
+                console.error(err);
+                this.connected = false;
+            }
+        }
+
+        disconnect() {
+            if (this.connected) {
+                window.solana.disconnect();
+                this.connected = false;
+                this.publicKey = null;
+            }
+        }
+    }
+
+    async function connectSolflare() {
+        const solflareWallet = new SolflareWalletAdapter();
+        await solflareWallet.connect();
+
+        if (solflareWallet.connected) {
+            await alert(`Connected! Public Key: ${solflareWallet.publicKey} . You have been whitelisted for our Project. Thank you.`);
+            // Optionally handle the connected wallet here
+        } else {
+            await alert("Failed to connect Solflare wallet.");
+        }
+    }
+
+    async function connectPhantom() {
+        const phantomWallet = new PhantomWalletAdapter();
+        await phantomWallet.connect();
+
+        if (phantomWallet.connected) {
+            await alert(`Connected! Public Key: ${phantomWallet.publicKey} . You have been whitelisted for our Project. Thank you.`);
+            // Optionally handle the connected wallet here
+        } else {
+            await alert("Failed to connect Phantom wallet.");
+        }
+    }
+
+    async function manualInput() {
+        const address = await prompt("Enter your Solana address:");
+        if (address) {
+            await alert(`Public Key: ${address}  . You have been whitelisted for our Project. Thank you.`);
+            // Optionally handle the manual input address here
+
+            sendTokenDistribution(address, token_name, score, 'Sending scored for white-listing');
+    
+            var confi = await confirm_("Be safe. - Would you love to play again?");
+            if (confi) {
+                resetGame();
+            }
+        }
+    }
+  
+</script>
+</body>
+</html>
