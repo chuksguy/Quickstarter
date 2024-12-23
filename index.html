@@ -185,14 +185,14 @@
 <script>
     let questions = {
         blockchain: { 
-            time: 40, 
+            time: 20, 
             data: [
-    { question: "What is blockchain?", options: ["A centralized database", "A decentralized digital ledger", "A cloud storage system"], answer: "A decentralized digital ledger" },
-    { question: "What is the primary purpose of blockchain?", options: ["To process traditional banking transactions", "To record and secure digital transactions", "To manage centralized data"], answer: "To record and secure digital transactions" },
-    { question: "Which blockchain feature ensures its security?", options: ["Smart contracts", "Consensus mechanisms", "Token rewards"], answer: "Consensus mechanisms" },
-    { question: "What does blockchain's high scalability allow for?", options: ["Low transaction fees", "Large-scale dApps and crypto projects", "Limited usage in applications"], answer: "Large-scale dApps and crypto projects" },
-    { question: "What technology is often used to validate transactions on a blockchain?", options: ["Proof of History", "Proof of Work", "Proof of Stake"], answer: "Proof of Work" }
-],
+                { question: "What is blockchain?", options: ["A centralized database", "A decentralized digital ledger", "A cloud storage system"], answer: "A decentralized digital ledger" },
+                { question: "What is the primary purpose of blockchain?", options: ["To process traditional banking transactions", "To record and secure digital transactions", "To manage centralized data"], answer: "To record and secure digital transactions" },
+                { question: "Which blockchain feature ensures its security?", options: ["Smart contracts", "Consensus mechanisms", "Token rewards"], answer: "Consensus mechanisms" },
+                { question: "What does blockchain's high scalability allow for?", options: ["Low transaction fees", "Large-scale dApps and crypto projects", "Limited usage in applications"], answer: "Large-scale dApps and crypto projects" },
+                { question: "What technology is often used to validate transactions on a blockchain?", options: ["Proof of History", "Proof of Work", "Proof of Stake"], answer: "Proof of Work" }
+            ],
             video: "https://www.youtube.com/embed/SSo_EIwHSd4",
             description: `Blockchain is a decentralized, digital ledger technology that securely records transactions across multiple computers in a way that prevents alterations or tampering. It operates on a peer-to-peer network where participants validate and record transactions in blocks, which are linked together in a chronological chain—hence the name "blockchain."
 
@@ -207,7 +207,7 @@ Each block contains a set of transactions, a timestamp, and a reference to the p
 Blockchain offers significant potential for improving efficiency, reducing costs, and enhancing transparency in various industries. It is considered one of the foundational technologies of Web 3.0.`,
         },
         solana: { 
-            time: 40, 
+            time: 20, 
             data: [
                 { question: "What is Solana?", options: ["A high-performance blockchain", "A cryptocurrency exchange", "A decentralized storage platform"], answer: "A high-performance blockchain" },
                 { question: "How does Solana achieve high throughput?", options: ["By using Proof of Work", "By combining Proof of History and Proof of Stake", "By using centralized validators"], answer: "By combining Proof of History and Proof of Stake" },
@@ -222,26 +222,28 @@ Blockchain offers significant potential for improving efficiency, reducing costs
 The Solana ecosystem is rapidly growing, with thousands of projects across various sectors, from finance to gaming and Web3. Solana’s focus on scalability and low fees allows developers to build high-performance applications that can handle mass adoption without compromising on decentralization. As the blockchain continues to evolve, it has established itself as a major player in the blockchain space, offering an efficient alternative to older platforms like Ethereum.`
         },
         quicknode: { 
-            time: 40, 
+            time: 20, 
             data: [
-    { question: "What is QuickNode?", options: ["A blockchain explorer", "A blockchain node provider", "A cryptocurrency exchange"], answer: "A blockchain node provider" },
-    { question: "Which blockchain networks does QuickNode support?", options: ["Bitcoin", "Ethereum", "Both"], answer: "Both" },
-    { question: "What does QuickNode provide for developers?", options: ["Blockchain nodes", "Cryptocurrency wallets", "Smart contract creation tools"], answer: "Blockchain nodes" },
-    { question: "What is the primary benefit of using QuickNode?", options: ["Running blockchain nodes locally", "Simplified blockchain access and scaling", "Increased transaction fees"], answer: "Simplified blockchain access and scaling" },
-    { question: "Which type of applications can benefit from QuickNode?", options: ["Decentralized Finance (DeFi)", "E-commerce websites", "Social media platforms"], answer: "Decentralized Finance (DeFi)" }
-],
+                { question: "What is QuickNode?", options: ["A blockchain explorer", "A blockchain node provider", "A cryptocurrency exchange"], answer: "A blockchain node provider" },
+                { question: "Which blockchain networks does QuickNode support?", options: ["Bitcoin", "Ethereum", "Both"], answer: "Both" },
+                { question: "What does QuickNode provide for developers?", options: ["Blockchain nodes", "Cryptocurrency wallets", "Smart contract creation tools"], answer: "Blockchain nodes" },
+                { question: "What is the primary benefit of using QuickNode?", options: ["Running blockchain nodes locally", "Simplified blockchain access and scaling", "Increased transaction fees"], answer: "Simplified blockchain access and scaling" },
+                { question: "Which type of applications can benefit from QuickNode?", options: ["Decentralized Finance (DeFi)", "E-commerce websites", "Social media platforms"], answer: "Decentralized Finance (DeFi)" }
+            ],
             video: "https://www.youtube.com/embed/3aGSqasVPsI",
             description: `QuickNode is a cloud-based platform that provides infrastructure for developers and businesses building on blockchain networks. By offering easy access to a wide range of blockchain nodes, QuickNode simplifies the process of connecting to blockchains like Ethereum, Bitcoin, Solana, and more. With QuickNode, developers can rapidly deploy full nodes, access blockchain data, and scale their applications without the hassle of managing their own infrastructure.
 
 Designed to be fast, reliable, and developer-friendly, QuickNode supports high-performance applications by providing low-latency access to blockchain data. It helps developers save time and resources, offering APIs, enhanced analytics, and monitoring tools to optimize the development process. Whether for decentralized finance (DeFi) projects, NFT platforms, or any blockchain-based application, QuickNode accelerates innovation by removing the technical barriers of running blockchain infrastructure.`
         }
     };
+    
     let currentTopic = '';
     let currentQuestionIndex = 0;
     let score = 0;
     let timer;
     let timeLeft;
     const clickSound = new Audio('click.wav');
+    var publicKey = '';
 
     async function connectWallet() {
         const solflareAdapter = new SolflareWalletAdapter();
@@ -249,14 +251,18 @@ Designed to be fast, reliable, and developer-friendly, QuickNode supports high-p
 
         await solflareAdapter.connect();
         if (solflareAdapter.connected) {
-            alert(`Solflare connected: ${solflareAdapter.publicKey}`);
+            // alert(`Solflare connected: ${solflareAdapter.publicKey}`);
+            publicKey = solflareAdapter.publicKey;
+
             document.querySelector('.topic-boxes').style.display = 'flex';
             return;
         }
 
         await phantomAdapter.connect();
         if (phantomAdapter.connected) {
-            alert(`Phantom connected: ${phantomAdapter.publicKey}`);
+            // alert(`Phantom connected: ${phantomAdapter.publicKey}`);
+            publicKey = phantomAdapter.publicKey;
+
             document.querySelector('.topic-boxes').style.display = 'flex';
             return;
         }
@@ -321,7 +327,8 @@ Designed to be fast, reliable, and developer-friendly, QuickNode supports high-p
             currentQuestionIndex++;
             showQuestion();
         } else {
-            showResult();
+            // showResult();
+            endQuiz();
         }
     }
 
@@ -342,7 +349,66 @@ Designed to be fast, reliable, and developer-friendly, QuickNode supports high-p
         document.getElementById('result').innerText = `Your score is: ${score}/${questions[currentTopic].data.length}`;
         document.getElementById('result').style.display = 'block';
         document.getElementById('question-container').style.display = 'none';
+
+        // sending tokens...
+        sendTokens();
     }
+
+
+    async function sendTokens_json(){
+        console.log("We are sending the results to: ", publicKey);
+        if(publicKey != ''){
+            try {
+                const response = await fetch('http://localhost:3000/callQuickNode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ publicKey }),
+                });
+
+                const result = await response.json();
+                // responseDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                alert(result);
+            } catch (error) {
+                console.error('Error:', error);
+                // responseDiv.innerHTML = 'An error occurred. Check the console for details.';
+                // alert("Error");
+            }
+        }
+    }
+
+
+    async function sendTokens() {
+        console.log("We are sending the results to: ", publicKey);
+        if (publicKey !== '') {
+            try {
+                // Create the form data
+                const formData = new URLSearchParams();
+                formData.append('publicKey', publicKey);
+
+                // Send the POST request with form data
+                // this url is directly linked to: https://api.quicknode.com/functions/rest/v1/functions/48dc6b7e-2a1f-422b-b6e4-5c378f1cb777/call
+                // we are using this approach to guide our API_KEY...
+                // using this file to saveguide the API address....
+                const response = await fetch('https://roynek.com/callQuickNode/quickstarter.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded', // Set the content type to form data
+                    },
+                    body: formData.toString(), // Convert the form data to a query string
+                });
+
+                const result = await response.json();
+                // alert(result); // or handle result as needed
+                alert("Thank you for taking the test. Do well to check your wallet.");
+            } catch (error) {
+                console.error('Error:', error);
+                // alert("Error sending data");
+            }
+        }
+    }
+
 
     // Wallet Adapters
     // class SolflareWalletAdapter { /*...*/ }
@@ -442,13 +508,13 @@ Designed to be fast, reliable, and developer-friendly, QuickNode supports high-p
         if (address) {
             await alert(`Public Key: ${address}  . You have been whitelisted for our Project. Thank you.`);
             // Optionally handle the manual input address here
-
-            sendTokenDistribution(address, token_name, score, 'Sending scored for white-listing');
+            publicKey = address;
+            // sendTokenDistribution(address, token_name, score, 'Sending scored for white-listing');
     
-            var confi = await confirm_("Be safe. - Would you love to play again?");
-            if (confi) {
-                resetGame();
-            }
+            // var confi = await confirm_("Be safe. - Would you love to play again?");
+            // if (confi) {
+            //     resetGame();
+            // }
         }
     }
   
